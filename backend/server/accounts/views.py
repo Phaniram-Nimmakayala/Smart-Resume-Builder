@@ -6,13 +6,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.decorators import api_view
 from .serializers import CustomTokenObtainPairSerializer
 import pdfplumber
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from django.http import HttpResponse
 import io
 import os
 import re
 import requests
+from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
@@ -281,27 +280,24 @@ class UploadResumeView(APIView):
 class FindJobsView(APIView):
 
     def post(self, request):
-        skills = request.data.get("skills", [])
-
-        # ✅ STEP 1: CREATE QUERY
-        query = skills[0] if skills else "software developer"
-
-        url = "https://api.adzuna.com/v1/api/jobs/in/search/1"
-
-        params = {
-            "app_id": os.getenv("ADZUNA_APP_ID"),
-             "app_key": os.getenv("ADZUNA_APP_KEY"),
-            "what": query,
-            "results_per_page": 4
-        }
-
         try:
+            skills = request.data.get("skills", [])
+            query = skills[0] if skills else "software developer"
+
+            url = "https://api.adzuna.com/v1/api/jobs/in/search/1"
+
+            params = {
+                "app_id": os.getenv("ADZUNA_APP_ID"),
+                "app_key": os.getenv("ADZUNA_APP_KEY"),
+                "what": query,
+                "results_per_page": 4
+            }
+
             response = requests.get(url, params=params)
             data = response.json()
 
             jobs = []
 
-            # ✅ FIRST FETCH
             for job in data.get("results", []):
                 jobs.append({
                     "title": job.get("title"),
@@ -310,28 +306,10 @@ class FindJobsView(APIView):
                     "url": job.get("redirect_url"),
                 })
 
-            # 🔥 STEP 3: FALLBACK (ADD HERE)
-            if not jobs:
-                print("No jobs found, using fallback...")
-
-                params["what"] = "software developer"
-
-                response = requests.get(url, params=params)
-                data = response.json()
-
-                for job in data.get("results", []):
-                    jobs.append({
-                        "title": job.get("title"),
-                        "company": job.get("company", {}).get("display_name"),
-                        "location": job.get("location", {}).get("display_name"),
-                        "url": job.get("redirect_url"),
-                    })
-
             return Response({"jobs": jobs})
 
         except Exception as e:
-            return Response({"error": str(e)})
-        
+            return Response({"error": str(e)}, status=500)
 
 
 
@@ -413,11 +391,19 @@ class AdminStatsView(APIView):
         })
     
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+if settings.GEMINI_API_KEY:
+    genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class GenerateQuestionsView(APIView):
 
     def post(self, request):
+
+        # ✅ ADD HERE (VERY FIRST)
+        if not settings.GEMINI_API_KEY:
+            return Response(
+                {"error": "Gemini API key not configured"},
+                status=500
+            )
         skills = request.data.get("skills", [])
         certifications = request.data.get("certifications", [])
 
@@ -451,32 +437,25 @@ class GenerateQuestionsView(APIView):
             return Response({"error": str(e)})
         
 
-client = OpenAI()
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
 
 @api_view(["POST"])
 def evaluate_answer(request):
     question = request.data.get("question")
     answer = request.data.get("answer")
 
+    # ✅ ADD THIS CHECK HERE
+    if not client:
+        return Response(
+            {"error": "OpenAI key not configured"},
+            status=500
+        )
+
     prompt = f"""
     Evaluate the following interview answer.
 
     Question: {question}
     Answer: {answer}
-
-    Give score out of 10 based on:
-    1. Grammar (0-3)
-    2. Relevance (0-4)
-    3. Clarity & Depth (0-3)
-
-    Return ONLY JSON like:
-    {{
-      "score": number,
-      "grammar": number,
-      "relevance": number,
-      "clarity": number,
-      "feedback": "short feedback"
-    }}
     """
 
     response = client.chat.completions.create(
@@ -484,15 +463,17 @@ def evaluate_answer(request):
         messages=[{"role": "user", "content": prompt}],
     )
 
+    content = response.choices[0].message.content
+
     try:
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(content)
     except:
-        return Response({"error": "Invalid AI response"}, status=500)
-
+        result = {
+            "score": None,
+            "feedback": content
+            }
+    
     return Response(result)
-
-
-
 
 
 # ADD THIS NEW CLASS AT THE BOTTOM
