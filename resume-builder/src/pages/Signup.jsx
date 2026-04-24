@@ -21,35 +21,18 @@ const Signup = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = (e) => {
+  e.preventDefault();
 
-    try {
-      await registerUser(form);
+  // save user in localStorage
+  localStorage.setItem("user", JSON.stringify(form));
 
-      setForm({
-        first_name: "",
-        last_name: "",
-        email: "",
-        mobile: "",
-        password: "",
-        confirm_password: "",
-      });
-
-      setPopup({
-        type: "success",
-        title: "Registration Successful!",
-        message: "Your account has been created 🎉",
-      });
-
-    } catch (err) {
-      setPopup({
-        type: "error",
-        title: "Registration Failed!",
-        message: "Something went wrong. Please try again.",
-      });
-    }
-  };
+  setPopup({
+    type: "success",
+    title: "Registration Successful!",
+    message: "Welcome 🎉",
+  });
+};
 
   return (
     <div className="min-h-screen flex items-start justify-center bg-slate-50 pt-40">
@@ -70,7 +53,7 @@ const Signup = () => {
               className="modal-btn"
               onClick={() => {
                 if (popup.type === "success") {
-                  navigate("/login");
+                 navigate("/");
                 }
                 setPopup(null);
               }}

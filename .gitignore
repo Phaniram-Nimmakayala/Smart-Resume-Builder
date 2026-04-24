@@ -17,12 +17,7 @@ media/
 # =========================
 resume-builder/node_modules/
 resume-builder/dist/
-resume-builder/build/
-
-# =========================
-# Files to ignore (IMPORTANT)
-# =========================
-*.pdf
+resume-builder/dist-ssr/
 
 # =========================
 # Environment Variables

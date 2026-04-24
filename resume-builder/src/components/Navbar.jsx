@@ -6,7 +6,7 @@ import "../styles/Navbar.css";
 
 export default function Navbar() {
 
-  const { user, logout } = useContext(AuthContext);
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,6 +34,15 @@ export default function Navbar() {
       });
     }
   };
+
+  const [user, setUser] = useState(null);
+
+useEffect(() => {
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  if (storedUser) {
+    setUser(storedUser);
+  }
+}, []);
 
   // ✅ ACTIVE SECTION TRACK
   useEffect(() => {
@@ -69,6 +78,11 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const handleLogout = () => {
+  localStorage.removeItem("user");
+  setUser(null);
+};
 
   return (
     <div className="nav-wrapper">
@@ -145,7 +159,7 @@ export default function Navbar() {
                 <span className="nav-user-greet">
                   Hello, <span className="nav-user-name">{user.first_name}</span>
                 </span>
-                <button onClick={logout} className="nav-btn-logout">
+                <button onClick={handleLogout} className="nav-btn-logout">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                   Logout
                 </button>

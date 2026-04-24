@@ -37,43 +37,22 @@ const Contact = () => {
     }, 3000);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = (e) => {
+  e.preventDefault();
 
-    if (!user) {
-      showNotification("Please login before sending a message", "error");
+  // Optional: store message locally (for demo)
+  localStorage.setItem("contactData", JSON.stringify(formData));
 
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+  // Show success popup
+  showNotification("Message sent successfully! 🎉", "success");
 
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/contact/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData)
-        }
-      );
-
-      if (response.ok) {
-        showNotification("Message sent successfully!", "success");
-
-        setFormData({
-          name: "",
-          email: "",
-          message: ""
-        });
-      }
-
-    } catch (error) {
-      showNotification("Something went wrong!", "error");
-    }
-  };
+  // Clear form
+  setFormData({
+    name: "",
+    email: "",
+    message: ""
+  });
+};
 
   return (
     <section className="contact-section">
@@ -151,7 +130,7 @@ const Contact = () => {
               </div>
               <div>
                 <span className="clic-label">Email</span>
-                <span className="clic-value">support@resumebuild.com</span>
+                <span className="clic-value">phaniram150@gmail.com.com</span>
               </div>
             </div>
 
